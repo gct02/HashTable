@@ -10,45 +10,57 @@
 #include <stdexcept>
 #include <format>
 
-class HTException : public std::exception {
+class HTException : public std::exception 
+{
 public:
 	HTException(const std::string& message)
-		: std::exception(message.c_str()) {
+		: std::exception(message.c_str()) 
+	{
 	}
 };
 
-class HTInvalidKeyType : public HTException {
+class HTInvalidKeyType : public HTException 
+{
 public:
 	HTInvalidKeyType()
-		: HTException("Default hash function accepts only contiguously allocated keys.") {
+		: HTException("Default hash function accepts only contiguously allocated keys.") 
+	{
 	}
 };
 
-class HTRehashFailed : public HTException {
+class HTRehashFailed : public HTException 
+{
 public:
 	HTRehashFailed()
-		: HTException("Failed to rehash hash table.") {
+		: HTException("Failed to rehash hash table.") 
+	{
 	}
 };
 
-class HTInsertionFailed : public HTException {
+class HTInsertionFailed : public HTException 
+{
 public:
 	HTInsertionFailed()
-		: HTException("Failed to insert an item in hash table.") {
+		: HTException("Failed to insert an item in hash table.") 
+	{
 	}
 };
 
 template<typename K, typename V>
-class HashTable {
+class HashTable 
+{
 public:
 	// Custom hash function interface
 	using HashFunction = std::function<size_t(const K&)>;
 
-	HashTable(HashFunction customHash = nullptr, size_t expectedSize = HashTable::INITIAL_CPTY,
-		      double maxLoadFactor = HashTable::MAX_LOAD_FACTOR)
-		: size(0), customHash(customHash), cpty(expectedSize), maxLoadFactor(maxLoadFactor) {
-		if (expectedSize < HashTable::INITIAL_CPTY)
-			cpty = HashTable::INITIAL_CPTY;
+	HashTable(HashFunction customHash = nullptr, size_t expectedSize = INITIAL_CPTY,
+		double maxLoadFactor = MAX_LOAD_FACTOR)
+		: size(0), customHash(customHash), cpty(expectedSize), maxLoadFactor(maxLoadFactor) 
+	{
+		if (expectedSize < INITIAL_CPTY) {
+			cpty = INITIAL_CPTY;
+		}
+		table.resize(cpty);
 
 		if (!isValidMaxLoadFactor(maxLoadFactor)) {
 			std::cout << std::format("Invalid maximum load factor: {}.\n", maxLoadFactor)
@@ -57,27 +69,28 @@ public:
 		}
 
 		this->minLoadFactor = this->maxLoadFactor / 2;
-		
-		table.resize(cpty);
 
-		if (!isValidKeyForDefaultHash())
+		if (!isValidKeyForDefaultHash()) {
 			throw HTInvalidKeyType();
+		}
 	}
 
 	// Copy constructor.
 	HashTable(const HashTable<K, V>& obj)
 		: size(obj.size), customHash(obj.customHash), cpty(obj.cpty), 
 		  minLoadFactor(obj.minLoadFactor), maxLoadFactor(obj.maxLoadFactor), 
-		  table(obj.table.begin(), obj.table.end()) {
+		  table(obj.table.begin(), obj.table.end()) 
+	{
 	}
 
-	// Get table's current size.
-	size_t getSize() const {
+	size_t getSize() const 
+	{
 		return size;
 	}
 
-	// Set a maximum limit for the hash table's load factor.
-	void setMaxLoadFactor(double maxLoadFactor) {
+	// Set a maximum threshold to the load factor.
+	void setMaxLoadFactor(double maxLoadFactor) 
+	{
 		if (!isValidMaxLoadFactor(maxLoadFactor)) {
 			std::cout << std::format("Invalid maximum load factor: {}.\n", maxLoadFactor)
 				      << "No changes were made.\n";
@@ -101,7 +114,8 @@ public:
 	}
 
 	// Set a custom hash function and rehash.
-	void setCustomHash(HashFunction customHash) {
+	void setCustomHash(HashFunction customHash) 
+	{
 		HashFunction oldHashFunction = this->customHash;
 		this->customHash = customHash;
 		try {
@@ -115,52 +129,62 @@ public:
 	}
 
 	// Check if the hash table contains an item with the given key.
-	bool contains(const K& key) const {
+	bool contains(const K& key) const 
+	{
 		size_t h = hash(key, cpty), i = 0;
 
 		do {
 			size_t idx = (h + i) % cpty;
-			if (table[idx] != nullptr && table[idx]->first == key)
+			if (table[idx] != nullptr && table[idx]->first == key) {
 				return true;
+			}
 			i++;
-		} while (i < HashTable::NBHD_SIZE);
+		} 
+		while (i < NBHD_SIZE);
 
 		return false;
 	}
 
 	// Get the value associated with the given key.
 	// Returns a nullopt if the item is not in the hash table.
-	std::optional<V> getValue(const K& key) const {
+	std::optional<V> getValue(const K& key) const 
+	{
 		size_t h = hash(key, cpty), i = 0;
 
 		do {
 			size_t idx = (h + i) % cpty;
-			if (table[idx] != nullptr && table[idx]->first == key)
+			if (table[idx] != nullptr && table[idx]->first == key) {
 				return std::make_optional<V>(table[idx]->second);
+			}
 			i++;
-		} while (i < HashTable::NBHD_SIZE);
+		} 
+		while (i < NBHD_SIZE);
 
 		return std::nullopt;
 	}
 
 	// Get the item (key-value pair) associated with the given key.
 	// Returns a nullopt if the item is not in the hash table.
-	std::optional<std::pair<K, V>> getItem(const K& key) const {
+	std::optional<std::pair<K, V>> getItem(const K& key) const 
+	{
 		size_t h = hash(key, cpty), i = 0;
 
 		do {
 			size_t idx = (h + i) % cpty;
-			if (table[idx] != nullptr && table[idx]->first == key)
+			if (table[idx] != nullptr && table[idx]->first == key) {
 				return std::make_optional<std::pair<K, V>>(*table[idx]);
+			}
 			i++;
-		} while (i < HashTable::NBHD_SIZE);
+		} 
+		while (i < NBHD_SIZE);
 
 		return std::nullopt;
 	}
 
 	// Insert a new key-value pair into the hash table.
 	// Returns true if the item was inserted and false otherwise.
-	bool insert(const K& key, const V& val) {
+	bool insert(const K& key, const V& val) 
+	{
 		size_t h = hash(key, cpty), i = 0;
 
 		// Check if there is any empty bucket within table[h]'s neighborhood
@@ -183,9 +207,10 @@ public:
 				return true;
 			}
 
-			if (table[idx]->first == key) 
+			if (table[idx]->first == key) {
 				// Don't insert duplicates
 				return false;
+			}
 	
 			i++;
 		} while (i < NBHD_SIZE);
@@ -198,13 +223,13 @@ public:
 			if (table[idx] == nullptr) {
 				size_t emptyBucketIdx = idx;
 
-				i -= HashTable::NBHD_SIZE - 1;
+				i -= NBHD_SIZE - 1;
 				idx = (h + i) % cpty;
 
 				table[emptyBucketIdx] = table[idx];
 				table[idx].reset();
 
-				if (i < HashTable::NBHD_SIZE) {
+				if (i < NBHD_SIZE) {
 					table[idx] = std::make_shared<std::pair<K, V>>(key, val);
 					size++;
 
@@ -230,7 +255,8 @@ public:
 
 	// Remove the item with the given key from the hash table and returns its value.
 	// Returns a nullopt if the item is not in the hash table.
-	std::optional<V> remove(const K& key) {
+	std::optional<V> remove(const K& key) 
+	{
 		size_t h = hash(key, cpty);
 		size_t i = 0;
 
@@ -244,39 +270,47 @@ public:
 				size--;
 
 				// Resize if needed
-				if (minLoadFactorExceeded() && cpty > INITIAL_CPTY) 
+				if (minLoadFactorExceeded() && cpty > INITIAL_CPTY) {
 					resize((cpty + 1) / 2);
+				}
 				
 				return r;
 			}
 			i++;
-		} while (i < HashTable::NBHD_SIZE);
+		} 
+		while (i < NBHD_SIZE);
 
 		return std::nullopt;
 	}
 
 	// Get a vector with all the values stored in the hash table.
-	std::vector<V> getAll() const {
+	std::vector<V> getValues() const 
+	{
 		std::vector<V> v;
 
-		for (Bucket bucket : table) 
-			if (bucket)
+		for (Bucket bucket : table) {
+			if (bucket != nullptr) {
 				v.emplace_back(bucket->second);
+			}
+		}
 		
 		return v;
 	}
 
-	bool isEmpty() const { 
+	bool isEmpty() const 
+	{ 
 		return size == 0; 
 	}
 
 	// Overload the [] operator for key-based lookup and insertion.
 	template <typename T = V>
-	typename std::enable_if<std::is_default_constructible<T>::value, T&>::type operator[](const K& key) {
+	typename std::enable_if<std::is_default_constructible<T>::value, T&>::type operator[](const K& key) 
+	{
 		Bucket bucket = getBucket(key);
 
-		if (bucket != nullptr)
+		if (bucket != nullptr) {
 			return bucket->second;
+		}
 
 		insert(key, T()); // Default-construct a value of type T
 
@@ -284,30 +318,31 @@ public:
 	}
 
 	// Copy assignment operator for the hash table.
-	void operator=(const HashTable& obj) {
-		clear();
-
+	void operator=(const HashTable& obj) 
+	{
 		cpty = obj.cpty;
 		size = obj.size;
 		maxLoadFactor = obj.maxLoadFactor;
 		minLoadFactor = obj.minLoadFactor;
 		customHash = obj.customHash;
 
+		clear();
 		table.resize(cpty);
 
-		for (size_t i = 0; i < cpty; i++)
-			if (obj.table[i] != nullptr)
+		for (size_t i = 0; i < cpty; i++) {
+			if (obj.table[i] != nullptr) {
 				table[i] = std::make_shared<std::pair<K, V>>(*obj.table[i]);
+			}
+		}
 	}
 
 private:
-	static constexpr double MAX_LOAD_FACTOR = 0.8; // Default maximum load factor
-
-	// Size of bucket neighborhoods
+	// Size of a slot's neighborhoods
 	// (referred to as "H" in the original paper on Hopscotch Hashing)
 	static constexpr int NBHD_SIZE = 32; 
 
 	static constexpr int INITIAL_CPTY = NBHD_SIZE; // Initial hash table capacity
+	static constexpr double MAX_LOAD_FACTOR = 0.8; // Default maximum load factor
 
 	using Bucket = std::shared_ptr<std::pair<K, V>>;
 
@@ -317,36 +352,44 @@ private:
 	double maxLoadFactor, minLoadFactor;
 	HashFunction customHash;
 
-	bool isValidMaxLoadFactor(double maxLoadFactor) const {
+	bool isValidMaxLoadFactor(double maxLoadFactor) const 
+	{
 		return !(maxLoadFactor <= 0.0 || maxLoadFactor > 1.0);
 	}
 
 	// Check if the default hash function supports the class's key type.
-	bool isValidKeyForDefaultHash() {
+	bool isValidKeyForDefaultHash() 
+	{
 		return customHash != nullptr || std::is_fundamental_v<K> ||
 			   std::is_pointer_v<K> || std::is_array_v<K>;
 	}
 
-	bool isPrime(uint64_t n) const {
-		if (n <= 1)
+	bool isPrime(uint64_t n) const 
+	{
+		if (n <= 1) {
 			return false;
+		}
 
-		for (uint64_t i = 2; i * i <= n; i++)
-			if (n % i == 0)
+		for (uint64_t i = 2; i * i <= n; i++) {
+			if (n % i == 0) {
 				return false;
-
+			}
+		}
 		return true;
 	}
 
-	size_t hash(const K& key, size_t range) const {
+	size_t hash(const K& key, size_t range) const 
+	{
 		// Use the custom hash function if provided; 
 		// otherwise, use the default hash function
-		auto hashFunction = customHash ? customHash : [this, range](const K& k) -> size_t {
+		auto hashFunction = customHash ? customHash : [this, range](const K& k) -> size_t 
+			{
 			// Pointer that points to the memory representation of k
 			const char* bytes = reinterpret_cast<const char*>(&k);
 
-			if (!bytes) 
+			if (!bytes) {
 				throw HTInvalidKeyType();
+			}
 			
 			const size_t blockSize = sizeof(k);
 
@@ -364,14 +407,15 @@ private:
 			}
 
 			return hashCode;
-		};
+			};
 
 		// Calculate hash code using the selected hash function
 		return hashFunction(key) % range;
 	}
 
 	// Resize hash table to the given capacity and rehash.
-	void resize(size_t newCpty) {
+	void resize(size_t newCpty) 
+	{
 		size_t oldCpty = cpty;
 		cpty = newCpty;
 
@@ -386,15 +430,16 @@ private:
 	}
 
 	// Reconfigure buckets indexes by applying a new hash function.
-	void rehash(size_t range) {
+	void rehash(size_t range) 
+	{
 		std::vector<Bucket> tempTable;
 		tempTable.resize(cpty);
 
 		// Transfer non-empty buckets from the current table to temp
 		for (size_t i = 0; i < range; i++) {
-			if (table[i] == nullptr)
+			if (table[i] == nullptr) {
 				continue;
-
+			}
 			size_t h = hash(table[i]->first, cpty);
 
 			// Check if there is any empty bucket within tempTable[h]'s neighborhood
@@ -406,10 +451,12 @@ private:
 					break;
 				}
 				j++;
-			} while (j < HashTable::NBHD_SIZE);
+			}
+			while (j < NBHD_SIZE);
 
-			if (j < HashTable::NBHD_SIZE)
+			if (j < NBHD_SIZE) {
 				continue;
+			}
 
 			// There is no empty bucket in tempTable[h]'s neighborhood
 			// Try to free space by moving buckets in tempTable[h]'s neighborhood 
@@ -419,13 +466,13 @@ private:
 				if (tempTable[idx] == nullptr) {
 					size_t emptyBucketIdx = idx;
 
-					j -= HashTable::NBHD_SIZE - 1;
+					j -= NBHD_SIZE - 1;
 					idx = (h + j) % cpty;
 
 					tempTable[emptyBucketIdx] = tempTable[idx];
 					tempTable[idx].reset();
 
-					if (j < HashTable::NBHD_SIZE) {
+					if (j < NBHD_SIZE) {
 						tempTable[idx] = table[i];
 						break;
 					}
@@ -436,8 +483,9 @@ private:
 			}
 
 			// Failed to rehash hash table
-			if (idx == h)
+			if (idx == h) {
 				throw HTRehashFailed();
+			}
 		}
 
 		// Swap the contents of the current table with the temporary table
@@ -446,36 +494,42 @@ private:
 
 	// Get bucket that points to the item associated with the given key.
 	// Returns a nullptr if the item is not in the hash table.
-	Bucket getBucket(const K& key) const {
+	Bucket getBucket(const K& key) const 
+	{
 		size_t h = hash(key, cpty);
 		size_t i = 0;
 
 		do {
 			size_t idx = (h + i) % cpty;
-			if (table[idx] != nullptr && table[idx]->first == key)
+			if (table[idx] != nullptr && table[idx]->first == key) {
 				return table[(h + i) % cpty];
+			}
 			i++;
-		} while (i < HashTable::NBHD_SIZE);
+		}
+		while (i < NBHD_SIZE);
 
 		return nullptr;
 	}
 
-	bool maxLoadFactorExceeded() const {
+	bool maxLoadFactorExceeded() const 
+	{
 		return static_cast<double>(size) / cpty > maxLoadFactor;
 	}
 
-	bool minLoadFactorExceeded() const {
+	bool minLoadFactorExceeded() const 
+	{
 		return static_cast<double>(size) / cpty < minLoadFactor;
 	}
 
 	// Reset the hash table to its default initial state.
-	void clear() {
-		for (Bucket bucket : table)
-			if (bucket != nullptr)
+	void clear() 
+	{
+		for (Bucket bucket : table) {
+			if (bucket != nullptr) {
 				bucket.reset();
-
+			}
+		}
 		table.clear();
-
 		size = 0;
 		cpty = HashTable::INITIAL_CPTY;
 	}
